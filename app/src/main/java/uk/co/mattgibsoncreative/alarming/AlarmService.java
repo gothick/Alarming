@@ -23,7 +23,7 @@ public class AlarmService extends Service {
 
     private long mStartTime = 0;
 
-    String NOTIFICATION_CHANNEL_ID = "uk.co.mattgibsoncreative.alarming.channel";
+    String NOTIFICATION_CHANNEL_ID = "uk.co.mattgibsoncreative.alarmingservice.channel";
 
     // Binding stuff. This is a local service, so we don't need to muck about with IPC.
     public class LocalBinder extends Binder {
@@ -69,24 +69,10 @@ public class AlarmService extends Service {
 
         mNM = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         createNotificationChannel();
-        showNotification();
+        startInForeground();
     }
 
-    @TargetApi(26)
-    private void createNotificationChannel() {
-        Timber.d("Creating notification channel");
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, getText(R.string.local_service_label), NotificationManager.IMPORTANCE_NONE);
-            channel.setLightColor(Color.BLUE);
-            channel.setLockscreenVisibility(NotificationCompat.VISIBILITY_PRIVATE);
-            mNM.createNotificationChannel(channel);
-        }
-    }
-
-    private void showNotification() {
-        Timber.d("Showing notification");
-        // In this sample, we'll use the same text for the ticker and the expanded notification
+    public void startInForeground() {
         CharSequence text = getText(R.string.local_service_started);
 
         // The PendingIntent to launch our activity if the user selects this notification
@@ -102,8 +88,18 @@ public class AlarmService extends Service {
                 .setContentText(text)  // the contents of the entry
                 .setContentIntent(contentIntent)  // The intent to send when the entry is clicked
                 .build();
+        startForeground(R.string.local_service_started, notification);
+    }
 
-        // Send the notification.
-        mNM.notify(R.string.local_service_started, notification);
+    @TargetApi(26)
+    private void createNotificationChannel() {
+        Timber.d("Creating notification channel");
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, getText(R.string.local_service_label), NotificationManager.IMPORTANCE_LOW);
+            channel.setLightColor(Color.BLUE);
+            channel.setLockscreenVisibility(NotificationCompat.VISIBILITY_PRIVATE);
+            mNM.createNotificationChannel(channel);
+        }
     }
 }
