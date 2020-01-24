@@ -8,11 +8,27 @@ import com.google.android.material.snackbar.Snackbar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
+import android.os.Handler;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity {
+
+    long startTime;
+    TextView timerTextView;
+    Handler timerHandler = new Handler();
+
+    Runnable timerRunnable = new Runnable() {
+        @Override
+        public void run() {
+            long timer_time_seconds = (System.currentTimeMillis() - startTime) / 1000;
+            timerTextView.setText(String.format("%d", timer_time_seconds));
+            // TODO: Schedule next update
+            timerHandler.postDelayed(this, 500);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,6 +45,10 @@ public class MainActivity extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
+
+        timerTextView = (TextView) findViewById(R.id.timerTextView);
+        startTime = System.currentTimeMillis();
+        timerHandler.postDelayed(timerRunnable, 0);
     }
 
     @Override
