@@ -61,16 +61,19 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
     }
 
-    long startTime;
     TextView timerTextView;
     Handler timerHandler = new Handler();
 
     Runnable timerRunnable = new Runnable() {
         @Override
         public void run() {
-            long timer_time_seconds = (System.currentTimeMillis() - startTime) / 1000;
-            timerTextView.setText(String.format("%d", timer_time_seconds));
-            // TODO: Schedule next update
+            if (mAlarmService != null) {
+                long timer_time_seconds = mAlarmService.getCurrentTimeMillis() / 1000;
+                timerTextView.setText(String.format("%d", timer_time_seconds));
+                // TODO: Schedule next update
+            } else {
+                Timber.e("No alarm service in timerRunnable");
+            }
             timerHandler.postDelayed(this, 500);
         }
     };
@@ -93,10 +96,12 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        Intent alarm_service_intent = new Intent(this,  AlarmService.class);
+        startService(alarm_service_intent);
         doBindService();
 
         timerTextView = (TextView) findViewById(R.id.timerTextView);
-        startTime = System.currentTimeMillis();
+        timerTextView.setText("");
         timerHandler.postDelayed(timerRunnable, 0);
     }
 

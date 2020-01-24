@@ -21,6 +21,8 @@ import timber.log.Timber;
 
 public class AlarmService extends Service {
 
+    private long mStartTime = 0;
+
     String NOTIFICATION_CHANNEL_ID = "uk.co.mattgibsoncreative.alarming.channel";
 
     // Binding stuff. This is a local service, so we don't need to muck about with IPC.
@@ -38,11 +40,24 @@ public class AlarmService extends Service {
         return mBinder;
     }
 
+    public long getCurrentTimeMillis() {
+        if (mStartTime != 0) {
+            long current_time = System.currentTimeMillis() - mStartTime;
+            Timber.d("Returning current time %d", current_time);
+            return current_time;
+        }
+        else {
+            Timber.e("getCurrentTimeMillis called when mStartTime was zero. " +
+                    "This should probably never happen. Have we been recreated?");
+            return 0;
+        }
+    }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Timber.d("In onStartCommand");
-
-        return super.onStartCommand(intent, flags, startId);
+        mStartTime = System.currentTimeMillis();
+        return START_STICKY;
     }
 
     private NotificationManager mNM;
