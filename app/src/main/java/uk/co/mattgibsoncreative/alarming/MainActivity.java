@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.Build;
 import android.os.Bundle;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -91,18 +92,23 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+
+                Intent alarm_service_intent = new Intent(MainActivity.this,  AlarmService.class);
+                alarm_service_intent.putExtra("START_TIME", System.currentTimeMillis());
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(alarm_service_intent);
+                } else {
+                    startService(alarm_service_intent);
+                }
+                doBindService();
+
+                timerTextView = (TextView) findViewById(R.id.timerTextView);
+                timerTextView.setText("");
+                timerHandler.postDelayed(timerRunnable, 0);
+
             }
         });
 
-        Intent alarm_service_intent = new Intent(this,  AlarmService.class);
-        startService(alarm_service_intent);
-        doBindService();
-
-        timerTextView = (TextView) findViewById(R.id.timerTextView);
-        timerTextView.setText("");
-        timerHandler.postDelayed(timerRunnable, 0);
     }
 
     @Override

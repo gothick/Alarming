@@ -1,14 +1,17 @@
 package uk.co.mattgibsoncreative.alarming;
 
+import androidx.annotation.TransitionRes;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationCompatExtras;
 
 import android.annotation.TargetApi;
+import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Binder;
@@ -21,7 +24,8 @@ import timber.log.Timber;
 
 public class AlarmService extends Service {
 
-    private long mStartTime = 0;
+    private long mStartTime;
+    private ChimePlayer mChimePlayer;
 
     String NOTIFICATION_CHANNEL_ID = "uk.co.mattgibsoncreative.alarmingservice.channel";
 
@@ -56,7 +60,41 @@ public class AlarmService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Timber.d("In onStartCommand");
-        mStartTime = System.currentTimeMillis();
+        if (intent != null) {
+            if (intent.getExtras() != null && intent.getExtras().containsKey("START_TIME")) {
+                // We're being started for the first time from our main screen in the app.
+                Timber.d("Received intent with START_TIME of %d", mStartTime);
+                mStartTime = intent.getExtras().getLong("START_TIME");
+            }
+
+            mChimePlayer.playChime(R.raw.rollover4);
+
+
+            // TODO: We should probably use elapesedRealtime() here instead.
+            // http://sangsoonam.github.io/2017/03/01/do-not-use-curenttimemillis-for-time-interval.html
+            long currentTime = System.currentTimeMillis();
+            long chimesSoFar = (currentTime - mStartTime) / 10000;
+            long nextChimeTime = mStartTime + ((chimesSoFar + 1) * 10000);
+            Timber.d("Scheduling next alarm for %d based on start time of %d.", nextChimeTime, mStartTime);
+
+            AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+
+            Intent alarmIntent = new Intent(this, ClockBroadcastReceiver.class);
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                    this,
+                    42,
+                    alarmIntent,
+                    PendingIntent.FLAG_CANCEL_CURRENT);
+
+            // Sigh.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextChimeTime, pendingIntent);
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, nextChimeTime, pendingIntent);
+            } else {
+                alarmManager.set(AlarmManager.RTC_WAKEUP, nextChimeTime, pendingIntent);
+            }
+        }
         return START_STICKY;
     }
 
@@ -66,10 +104,12 @@ public class AlarmService extends Service {
     public void onCreate() {
         Timber.d("Alarming Service onCreate called.");
         super.onCreate();
+        startInForeground();
 
         mNM = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         createNotificationChannel();
-        startInForeground();
+        mChimePlayer = new ChimePlayerMultipleMediaPlayers(this);
+        mChimePlayer.prepareChime(R.raw.rollover4);
     }
 
     public void startInForeground() {
